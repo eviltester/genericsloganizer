@@ -87,9 +87,9 @@ max-width: 1000px;
             var theSlogan = new Slogan();
 
             var optionals = theDefn.match(/\[.*?\]/g);
-            if(optionals.length==0){
+            if(optionals==null || optionals.length==0){
                 // single entry
-                return theSlogan.addOptionalPhrase(theDefn);
+                return theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(theDefn));
             }
 
             // there are optionals, so find them and add the strings between
