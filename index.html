@@ -1,0 +1,196 @@
+<head>
+    <title>Generic Sloganizer</title>
+
+<style>
+.sloganizer {
+margin: 10px;
+margin-left: auto;
+margin-right: auto;
+max-width: 1000px;
+}
+</style>
+<script>
+
+    /*
+        opty = new OptionalPhrase().setFromCommaDelimitedString("test, that, this, works");
+        console.log(opty.getRandomPhrase());
+     */
+    function OptionalPhrase(){
+        this.phrases = [];
+
+        this.clear = function(){
+            this.phrases = [];
+            return this;
+        }
+
+        this.setFromCommaDelimitedString = function (csv){
+            var newItems = csv.split(',');
+            for(var i=0; i<newItems.length; i++) {
+                var trimmed = newItems[i].trim();
+                if (trimmed.length > 0) {
+                    this.phrases.push(trimmed);
+                }
+            }
+            return this;
+        }
+
+        this.setFromString = function (non_csv){
+            if(non_csv.trim().length==0){
+                return this;
+            }
+            this.phrases.push(non_csv.trim());
+            return this;
+        }
+
+        this.getRandomPhrase = function(){
+
+            if(this.phrases.length==0){
+                return "";
+            }
+
+            var index = Math.floor((Math.random() * this.phrases.length));
+            return this.phrases[index];
+        }
+    }
+
+    /*
+        slogan = new Slogan().addOptionalPhrase(new OptionalPhrase().setFromCommaDelimitedString("we can"))
+     */
+    function Slogan(){
+        this.optionalPhrases = [];
+        this.addOptionalPhrase = function(phrase){
+            if(phrase.phrases.length==0){
+                return this;
+            }
+            this.optionalPhrases.push(phrase);
+            return this;
+        }
+        this.getSlogan = function(){
+            var newSlogan = "";
+            var spacer = "";
+            for(var i=0; i<this.optionalPhrases.length; i++) {
+                newSlogan = newSlogan + spacer + this.optionalPhrases[i].getRandomPhrase();
+                spacer=" ";
+            }
+            return newSlogan;
+        }
+    }
+
+    /*
+        sloganParser = new SloganDefinitionParser().createSloganGenerator("We can [only, never, absolutely] [automate, encourage, mandate] [creativity, rote work, the wearing of hats]");
+     */
+    function SloganDefinitionParser(){
+
+        this.createSloganGenerator = function(theDefn){
+            var theSlogan = new Slogan();
+
+            var optionals = theDefn.match(/\[.*?\]/g);
+            if(optionals.length==0){
+                // single entry
+                return theSlogan.addOptionalPhrase(theDefn);
+            }
+
+            // there are optionals, so find them and add the strings between
+            var processString = theDefn;
+            for(var i=0; i<optionals.length; i++) {
+                // find the optional
+                var optionalAt = processString.indexOf(optionals[i]);
+                // add the string before the optional
+                if(optionalAt>0){
+                    theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString.slice(0, optionalAt)));
+                }
+                // add the optional
+                var optionalCsv = processString.slice(optionalAt, optionalAt+optionals[i].length);
+                optionalCsv = optionalCsv.replace("\[","").replace("\]","");
+                theSlogan.addOptionalPhrase(new OptionalPhrase().setFromCommaDelimitedString(optionalCsv));
+                // split at end of optional
+                processString = processString.substring(optionalAt + optionals[i].length);
+            }
+            if(processString.length>0){
+                theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString));
+            }
+
+            return theSlogan;
+        }
+    }
+
+    /*
+        sloganizer = new Sloganizer().populateSlogansFrom("this [is, was] a test\n[and,did] it do the do");
+     */
+    function Sloganizer(){
+        this.slogans=[];
+
+        this.populateSlogansFrom = function(lineString){
+            parser = new SloganDefinitionParser();
+
+            lines = lineString.match(/[^\r\n]+/g);
+
+            for(var i=0; i<lines.length; i++) {
+                this.slogans.push(parser.createSloganGenerator(lines[i]));
+            }
+            return this;
+        }
+
+        this.getSlogan = function(){
+            var index = Math.floor((Math.random() * this.slogans.length));
+            return this.slogans[index].getSlogan();
+        }
+    }
+
+</script>
+
+</head>
+<body>
+
+<div class="sloganizer">
+
+<details>
+    <summary>Instructions</summary>
+<ul>
+    <li>Expand the "Enter your slogan Content Here" section to create a new definition.</li>
+    <li>A slogan definition is a set of lines in the text area</li>
+    <li>Each line can have optional phrases which are csv text in square brackets e.g. [never, only, ever]</li>
+    <li>One phrase in the csv will be randomly chosen to use in the generated slogan line</li>
+    <li>You can have csv phrases in each slogan line</li>
+    <li>When generating a slogan, one line will be chosen at random to be the slogan</li>
+</ul>
+
+<p>Brought to you by <a href="https://eviltester.com" target="_blank" rel="noopener noreferrer">EvilTester.com</a></p>
+</details>
+
+    <details>
+    <summary>Enter Your Slogan Content Here</summary>
+
+<textarea rows = "5" cols = "60" id="slogandefinition">
+We can [only, never, absolutely] [automate, encourage, mandate] [creativity, rote work, the wearing of hats]
+</textarea>
+<br/>
+    <button id="generateFromDefinition" onclick="configureSloganizer()">generate sloganizer</button>
+</details>
+    <br>
+
+
+
+
+
+    <hr/>
+
+<button class="title" onclick="changeSlogan()">Generate Slogan</button>
+<p class="slogan"><span id="slogan">Slogans will appear here</span></p>
+
+</div>
+
+<script>
+
+var sloganizer = new Sloganizer().populateSlogansFrom("We can [only, never, absolutely] [automate, encourage, mandate] [creativity, rote work, the wearing of hats]");
+
+function configureSloganizer(){
+    window.sloganizer = new Sloganizer().populateSlogansFrom(document.getElementById("slogandefinition").value);
+}
+
+function changeSlogan(){
+    document.getElementById("slogan").innerText = sloganizer.getSlogan();
+}
+</script>
+
+</body>
