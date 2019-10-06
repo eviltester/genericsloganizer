@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head></head>
+<body>
+<script>
+    function generateCode(){
+        var txt = document.getElementById("code").value;
+        txt = txt.replace(/(\r?\n|\r)/g," ");
+        console.log(txt);
+        console.log("---");
+        console.log(btoa(txt));
+        console.log("---");
+        console.log("eval(atob('" + btoa(txt) + "'));")
+    }
+</script>
+<textarea rows = "5" cols = "60" id="code"></textarea>
+<button id="generate" onclick="generateCode()">generate code</button>
+</body>
+</html>

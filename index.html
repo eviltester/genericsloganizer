@@ -1,5 +1,3 @@
-<!DOCTYPE html>
-<html>
 <head>
     <title>Generic Sloganizer</title>
 
@@ -19,40 +17,36 @@ max-width: 1000px;
      */
     function OptionalPhrase(){
         this.phrases = [];
-
-        this.clear = function(){
-            this.phrases = [];
+    }
+    OptionalPhrase.prototype.clear = function(){
+        this.phrases = [];
+        return this;
+    }
+    OptionalPhrase.prototype.setFromCommaDelimitedString = function (csv){
+        var newItems = csv.split(',');
+        for(var i=0; i<newItems.length; i++) {
+            var trimmed = newItems[i].trim();
+            if (trimmed.length > 0) {
+                this.phrases.push(trimmed);
+            }
+        }
+        return this;
+    }
+    OptionalPhrase.prototype.setFromString = function (non_csv){
+        if(non_csv.trim().length==0){
             return this;
         }
+        this.phrases.push(non_csv.trim());
+        return this;
+    }
+    OptionalPhrase.prototype.getRandomPhrase = function(){
 
-        this.setFromCommaDelimitedString = function (csv){
-            var newItems = csv.split(',');
-            for(var i=0; i<newItems.length; i++) {
-                var trimmed = newItems[i].trim();
-                if (trimmed.length > 0) {
-                    this.phrases.push(trimmed);
-                }
-            }
-            return this;
+        if(this.phrases.length==0){
+            return "";
         }
 
-        this.setFromString = function (non_csv){
-            if(non_csv.trim().length==0){
-                return this;
-            }
-            this.phrases.push(non_csv.trim());
-            return this;
-        }
-
-        this.getRandomPhrase = function(){
-
-            if(this.phrases.length==0){
-                return "";
-            }
-
-            var index = Math.floor((Math.random() * this.phrases.length));
-            return this.phrases[index];
-        }
+        var index = Math.floor((Math.random() * this.phrases.length));
+        return this.phrases[index];
     }
 
     /*
@@ -60,60 +54,59 @@ max-width: 1000px;
      */
     function Slogan(){
         this.optionalPhrases = [];
-        this.addOptionalPhrase = function(phrase){
-            if(phrase.phrases.length==0){
-                return this;
-            }
-            this.optionalPhrases.push(phrase);
+    }
+    Slogan.prototype.addOptionalPhrase = function(phrase){
+        if(phrase.phrases.length==0){
             return this;
         }
-        this.getSlogan = function(){
-            var newSlogan = "";
-            var spacer = "";
-            for(var i=0; i<this.optionalPhrases.length; i++) {
-                newSlogan = newSlogan + spacer + this.optionalPhrases[i].getRandomPhrase();
-                spacer=" ";
-            }
-            return newSlogan;
+        this.optionalPhrases.push(phrase);
+        return this;
+    }
+    Slogan.prototype.getSlogan = function(){
+        var newSlogan = "";
+        var spacer = "";
+        for(var i=0; i<this.optionalPhrases.length; i++) {
+            newSlogan = newSlogan + spacer + this.optionalPhrases[i].getRandomPhrase();
+            spacer=" ";
         }
+        return newSlogan;
     }
 
     /*
         sloganParser = new SloganDefinitionParser().createSloganGenerator("We can [only, never, absolutely] [automate, encourage, mandate] [creativity, rote work, the wearing of hats]");
      */
     function SloganDefinitionParser(){
+    }
+    SloganDefinitionParser.prototype.createSloganGenerator = function(theDefn){
+        var theSlogan = new Slogan();
 
-        this.createSloganGenerator = function(theDefn){
-            var theSlogan = new Slogan();
-
-            var optionals = theDefn.match(/\[.*?\]/g);
-            if(optionals==null || optionals.length==0){
-                // single entry
-                return theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(theDefn));
-            }
-
-            // there are optionals, so find them and add the strings between
-            var processString = theDefn;
-            for(var i=0; i<optionals.length; i++) {
-                // find the optional
-                var optionalAt = processString.indexOf(optionals[i]);
-                // add the string before the optional
-                if(optionalAt>0){
-                    theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString.slice(0, optionalAt)));
-                }
-                // add the optional
-                var optionalCsv = processString.slice(optionalAt, optionalAt+optionals[i].length);
-                optionalCsv = optionalCsv.replace("\[","").replace("\]","");
-                theSlogan.addOptionalPhrase(new OptionalPhrase().setFromCommaDelimitedString(optionalCsv));
-                // split at end of optional
-                processString = processString.substring(optionalAt + optionals[i].length);
-            }
-            if(processString.length>0){
-                theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString));
-            }
-
-            return theSlogan;
+        var optionals = theDefn.match(/\[.*?\]/g);
+        if(optionals.length==0){
+            // single entry
+            return theSlogan.addOptionalPhrase(theDefn);
         }
+
+        // there are optionals, so find them and add the strings between
+        var processString = theDefn;
+        for(var i=0; i<optionals.length; i++) {
+            // find the optional
+            var optionalAt = processString.indexOf(optionals[i]);
+            // add the string before the optional
+            if(optionalAt>0){
+                theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString.slice(0, optionalAt)));
+            }
+            // add the optional
+            var optionalCsv = processString.slice(optionalAt, optionalAt+optionals[i].length);
+            optionalCsv = optionalCsv.replace("\[","").replace("\]","");
+            theSlogan.addOptionalPhrase(new OptionalPhrase().setFromCommaDelimitedString(optionalCsv));
+            // split at end of optional
+            processString = processString.substring(optionalAt + optionals[i].length);
+        }
+        if(processString.length>0){
+            theSlogan.addOptionalPhrase(new OptionalPhrase().setFromString(processString));
+        }
+
+        return theSlogan;
     }
 
     /*
@@ -121,26 +114,36 @@ max-width: 1000px;
      */
     function Sloganizer(){
         this.slogans=[];
-
-        this.populateSlogansFrom = function(lineString){
-            parser = new SloganDefinitionParser();
-
-            lines = lineString.match(/[^\r\n]+/g);
-
-            for(var i=0; i<lines.length; i++) {
-                this.slogans.push(parser.createSloganGenerator(lines[i]));
-            }
-            return this;
-        }
-
-        this.getSlogan = function(){
-            var index = Math.floor((Math.random() * this.slogans.length));
-            return this.slogans[index].getSlogan();
-        }
     }
+    Sloganizer.prototype.populateSlogansFrom = function(lineString){
+        parser = new SloganDefinitionParser();
+
+        lines = lineString.match(/[^\r\n]+/g);
+
+        for(var i=0; i<lines.length; i++) {
+            this.slogans.push(parser.createSloganGenerator(lines[i]));
+        }
+        return this;
+    }
+    Sloganizer.prototype.getSlogan = function(){
+        var index = Math.floor((Math.random() * this.slogans.length));
+        return this.slogans[index].getSlogan();
+    }
+
 
 </script>
 
+
+<script>
+
+bugInjector = [];
+bugInjector.push("U2xvZ2FuaXplci5wcm90b3R5cGUuZ2V0U2xvZ2FuID0gZnVuY3Rpb24oKXsgICAgICAgICB2YXIgaW5kZXggPSBNYXRoLmZsb29yKChNYXRoLnJhbmRvbSgpICogdGhpcy5zbG9nYW5zLmxlbmd0aCkpOyBpZih0aGlzLnNsb2dhbnMubGVuZ3RoPjEpe2luZGV4Kyt9OyAgICAgICAgIHJldHVybiB0aGlzLnNsb2dhbnNbaW5kZXhdLmdldFNsb2dhbigpOyAgICAgfQ==");
+bugInjector.push("ZiA9IGRvY3VtZW50LmNyZWF0ZUVsZW1lbnQoImZvcm0iKTsgcCA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJzbG9nYW5EZWZpbml0aW9uR1VJIik7IHdoaWxlKHAuY2hpbGROb2Rlcy5sZW5ndGg+MCl7Zi5hcHBlbmRDaGlsZChwLmNoaWxkTm9kZXMuaXRlbSgwKSl9IHAuaW5zZXJ0QmVmb3JlKGYsIHAuZmlyc3RDaGlsZCk7");
+bugInjector.push("ZG9jdW1lbnQub25jbGljayA9IGNoYW5nZVNsb2dhbg==");
+function injectBug(id){
+    eval(atob(bugInjector[id]));
+}
+</script>
 </head>
 <body>
 
@@ -158,28 +161,43 @@ max-width: 1000px;
 </ul>
 
 <p>Brought to you by <a href="https://eviltester.com" target="_blank" rel="noopener noreferrer">EvilTester.com</a></p>
+
+<details>
+    <summary>Bug Injection</summary>
+<ul id="bugInjectionList">
+    <li><button onclick="injectBug(0)">Bug #1</button></li>
+    <li><button onclick="injectBug(1)">Bug #2</button></li>
+    <li><button onclick="injectBug(2)">Bug #3</button></li>
+</ul>
+</details>
 </details>
 
     <details>
     <summary>Enter Your Slogan Content Here</summary>
 
+<div id="sloganDefinitionGUI">
+    <div id="slogandefinitionentry">
 <textarea rows = "5" cols = "60" id="slogandefinition">
 We can [only, never, absolutely] [automate, encourage, mandate] [creativity, rote work, the wearing of hats]
 </textarea>
-<br/>
-    <button id="generateFromDefinition" onclick="configureSloganizer()">generate sloganizer</button>
-</details>
+    </div>
+    <br/>
+    <div id="slogandefinitiontrigger">
+        <button id="generateFromDefinition" onclick="configureSloganizer()">generate sloganizer</button>
+    </div>
     <br>
-
-
-
-
-
     <hr/>
+</div>
+</details>
 
-<button class="title" onclick="changeSlogan()">Generate Slogan</button>
-<p class="slogan"><span id="slogan">Slogans will appear here</span></p>
-
+<div id="sloganGenerationGUI">
+    <div id="changeSloganTrigger">
+        <button class="title" onclick="changeSlogan()">Generate Slogan</button>
+    </div>
+    <div id="renderSloganArea">
+        <p class="slogan"><span id="slogan">Slogans will appear here</span></p>
+    </div>
+</div>
 </div>
 
 <script>
@@ -196,4 +214,3 @@ function changeSlogan(){
 </script>
 
 </body>
-</html>
